@@ -1,11 +1,11 @@
 #' Title
 #'
-#' @param donors
-#' @param risks
-#' @param stats_risks
-#' @param geo_level
+#' @param donors data.table
+#' @param risks data.table
+#' @param stats_risks data.table
+#' @param geo_level character vector
 #'
-#' @return
+#' @return a data.table
 #' @export
 #'
 #' @examples
@@ -25,14 +25,17 @@ draw_donors <- function(donors, risks, stats_risks, geo_level){
   remaining_risks <- data.table::copy(risks)
   i = 0
 
-  while(nrow(remaining_risks)*nrow(remaining_donors) > 0 & i <= length(cases)){
+  while(nrow(remaining_risks)*nrow(remaining_donors) > 0 & i < length(cases)){
     i = i+1
     g = stats_risks[[geo_level]][i]
+    #TODO filter remaining risks et remaining donors correctement
     n_draw = stats_risks$n_to_draw[i]
-    res[[i]] <- remaining_donors[ remaining_donors[[geo_level]] != g, .SD[sample(.N, n_draw)]]$ident
+    orig <- remaining_risks[]
+    dest <- remaining_donors[ remaining_donors[[geo_level]] != g, .SD[sample(.N, n_draw)]]$ident
 
+    res[[i]] <- data.table( orig = orig, dest = dest )
     remaining_donors <- remaining_donors[! ident %in% res[[i]], ]
-    remaining_risks <- remaining_risks[! ident %in% res[[i]], ]
+    remaining_risks <- remaining_risks[ ! ident %in% c(dest,orig), ]
 
   }
 

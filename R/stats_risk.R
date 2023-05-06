@@ -12,7 +12,7 @@
 #' - `n_risk`: number of risky individuals by geo * similar
 #' - `n_to_draw`: number of donors to draw
 #' @export
-#'
+#' @import data.table
 #' @examples
 #' library(data.table)
 #' set.seed(123)
@@ -22,13 +22,17 @@
 #' stats_risks <- summary_risk(donors, risks, similar = c("edu", "sex"), geo_level = "geo")
 summary_risk <- function(donors, risks, similar, geo_level){
 
-  require(data.table)
   stats_donors1 <- donors[, .(n_ind = .N), by = c(similar, geo_level)]
+  # data.table::setnames(stats_donors1, N, "n_ind")
 
+  data.table::setkeyv(stats_donors1, geo_level)
+
+  all_geos <- unique(stats_donors1[[geo_level]])
   stats_donors2 <- purrr::map_dfr(
-    unique(stats_donors1[[geo_level]]),
+    all_geos,
     \(g){
-      d <- stats_donors1[ stats_donors1[[geo_level]] != g, .(n_don = sum(n_ind)), by = c(similar)]
+      other_geos <- all_geos[all_geos != g]
+      d <- stats_donors1[ list(other_geos), .(n_don = sum(n_ind)), by = c(similar)]
       d[, c(geo_level) := g]
     }
   )
