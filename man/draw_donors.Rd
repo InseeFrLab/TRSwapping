@@ -4,7 +4,7 @@
 \alias{draw_donors}
 \title{Title}
 \usage{
-draw_donors(donors, risks, stats_risks, geo_level)
+draw_donors(donors, risks, stats_risks, similar, geo_level)
 }
 \arguments{
 \item{donors}{data.table}
@@ -12,6 +12,8 @@ draw_donors(donors, risks, stats_risks, geo_level)
 \item{risks}{data.table}
 
 \item{stats_risks}{data.table}
+
+\item{similar}{character vector}
 
 \item{geo_level}{character vector}
 }
@@ -28,5 +30,5 @@ n = 1e3
 donors <- create_data_example(n)
 risks <- donors[sample(1:n, ceiling(n*0.07)),]
 stats_risks <- summary_risk(donors, risks, similar = c("edu", "sex"), geo_level = "geo")
-donors_drawn <- draw_donors(donors, risks, stats_risks, "geo")
+donors_drawn <- draw_donors(donors, risks, stats_risks, similar = c("edu", "sex"), geo_level = "geo")
 }
