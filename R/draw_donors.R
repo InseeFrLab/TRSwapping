@@ -1,4 +1,4 @@
-#' Title
+#' Match similar risks-donors at one geographic level
 #'
 #' @param donors data.table
 #' @param risks data.table
@@ -61,3 +61,49 @@ draw_donors <- function(donors, risks, stats_risks, similar, geo_level){
   return(list(drawn_donors = rbindlist(res), remain_donors = remaining_donors, remain_risks = remaining_risks))
 
 }
+
+
+#' Title
+#'
+#' @param donors
+#' @param risks
+#' @param l_similar list of character vectors
+#' @param geo_level
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' library(data.table)
+#' set.seed(123)
+#' n = 1e3
+#' donors <- create_data_example(n)
+#' risks <- donors[sample(1:n, ceiling(n*0.07)),]
+#' donors_drawn <- draw_donors_multi_sim(donors, risks, l_similar = list(c("edu", "sex", "age"), c("age", "sex"), c("sex")), geo_level = "geo")
+draw_donors_multi_sim <- function(donors, risks, l_similar, geo_level){
+
+  remaining_donors <- data.table::copy(donors)
+  remaining_risks <- data.table::copy(risks)
+  s = 0
+
+  res <- as.list(rep(NA, length(l_similar)))
+
+  while(nrow(remaining_risks) > 0 & nrow(remaining_donors) > 0 & s < length(l_similar)){
+    s = s+1
+    sim = l_similar[[s]]
+    cat("Search of donors similar on : ", sim, "\n")
+
+    stats_risks <- summary_risk(remaining_donors, remaining_risks, similar = sim, geo_level)
+    matching <- draw_donors(remaining_donors, remaining_risks, stats_risks, similar = sim, geo_level)
+
+    remaining_donors <- data.table::copy(matching$remain_donors)
+    remaining_risks <- data.table::copy(matching$remain_risks)
+
+    res[[s]] <- matching$drawn_donors
+  }
+
+  return(res)
+
+}
+
+

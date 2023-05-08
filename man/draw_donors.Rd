@@ -2,7 +2,7 @@
 % Please edit documentation in R/draw_donors.R
 \name{draw_donors}
 \alias{draw_donors}
-\title{Title}
+\title{Match similar risks-donors at one geographic level}
 \usage{
 draw_donors(donors, risks, stats_risks, similar, geo_level)
 }
@@ -21,7 +21,7 @@ draw_donors(donors, risks, stats_risks, similar, geo_level)
 a data.table
 }
 \description{
-Title
+Match similar risks-donors at one geographic level
 }
 \examples{
 library(data.table)

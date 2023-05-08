@@ -2,5 +2,6 @@
 
 export(create_data_example)
 export(draw_donors)
+export(draw_donors_multi_sim)
 export(summary_risk)
 import(data.table)
