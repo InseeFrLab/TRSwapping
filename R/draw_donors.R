@@ -1,10 +1,11 @@
 #' Match similar risks-donors at one geographic level
 #'
-#' @param donors data.table
-#' @param risks data.table
+#' @param donors_geo data.table
+#' @param risks_geo data.table
 #' @param stats_risks data.table
 #' @param similar character vector
 #' @param geo_level character vector
+#' @param geo_level_sup character vector
 #'
 #' @return a data.table
 #' @export
@@ -16,61 +17,78 @@
 #' donors <- create_data_example(n)
 #' risks <- donors[sample(1:n, ceiling(n*0.07)),]
 #' stats_risks <- summary_risk(donors, risks, similar = c("edu", "sex"), geo_level = "geo")
-#' donors_drawn <- draw_donors(donors, risks, stats_risks, similar = c("edu", "sex"), geo_level = "geo")
-draw_donors <- function(donors, risks, stats_risks, similar, geo_level){
+#' donors_geo = data.table::copy(donors); risks_geo = data.table::copy(risks)
+#' donors_drawn <- draw_donors_one_geo_one_sim(donors, risks, stats_risks, similar = c("edu", "sex"), geo_level = "geo")
+draw_donors_one_geo_one_sim <- function(donors_geo, risks_geo, stats_risks, similar, geo_level, geo_level_sup = NULL){
 
-  cases <- 1:nrow(stats_risks)
-  res <- as.list(cases)
+  ns <- nrow(stats_risks)
+  cases <- 1:ns
+  res <- list() #as.list(rep(NULL, ns))
 
-  remaining_donors <- data.table::copy(donors)
-  remaining_risks <- data.table::copy(risks)
-  setkeyv(remaining_risks, c(similar, geo_level))
-  setkeyv(remaining_donors, c(similar))
-  i = 0
+  # donors_geo <- data.table::copy(donors_geo)
+  # remaining_risks <- data.table::copy(risks)
 
-  while(nrow(remaining_risks) > 0 & nrow(remaining_donors) > 0 & i < length(cases)){
-    i = i+1
+  setkeyv(risks_geo, c(similar, geo_level, geo_level_sup))
+  setkeyv(donors_geo, c(similar, geo_level_sup))
 
-    # stats_risks <- summary_risk(remaining_donors, remaining_risks, similar = c("edu", "sex"), geo_level = "geo")
+  i = 1
+
+  while(nrow(risks_geo) > 0 & nrow(donors_geo) > 0 & i <= ns){
 
     stats <- copy(stats_risks[i,])
-    setkeyv(stats, c(similar, geo_level))
+    setkeyv(stats, c(similar, geo_level, geo_level_sup))
 
-    g = stats_risks[[geo_level]][1]
+    g <- stats[[geo_level]][1]
+    g_sup <- if(is.null(geo_level_sup)) NULL else stats[[geo_level_sup]][1]
 
-    concerned_risks <- remaining_risks[stats]
-    # merge(stats_risks[i,], remaining_risks, by = c(similar, geo_level))
+    concerned_risks <- risks_geo[stats][!is.na(ident),]
+    # merge(stats_risks[i,], risks_geo, by = c(similar, geo_level))
     nr <- nrow(concerned_risks)
 
-    stats[,c(geo_level):=NULL]
-    concerned_donors <- remaining_donors[stats]
-    concerned_donors <- concerned_donors[concerned_donors[[geo_level]] != g,]
-    nd <- nrow(concerned_donors)
+    if(nr == 0){
+      res[[i]] <- data.table( orig = NULL, dest = NULL )
+    }else{
 
-    n_draw = if(nr <= nd) nr else nd
+      stats[,c(geo_level):=NULL]
+      concerned_donors <- donors_geo[stats][!is.na(ident),]
+      setkeyv(concerned_donors, geo_level)
+      concerned_donors <- concerned_donors[!J(g),]
+      nd <- nrow(concerned_donors)
+      setkey(concerned_donors, NULL)
 
-    orig <- concerned_risks$ident
-    dest <- concerned_donors[ , .SD[sample(.N, n_draw)]]$ident
+      if(nd == 0){
+        res[[i]] <- data.table( orig = NULL, dest = NULL )
+      }else{
+        n_draw <- min(nr, nd)
 
-    res[[i]] <- data.table( orig = orig, dest = dest )
-    remaining_donors <- remaining_donors[ ! ident %in% c(dest,orig), ]
-    remaining_risks <- remaining_risks[ ! ident %in% c(dest,orig), ]
+        orig <- concerned_risks$ident[sample(1:nr, n_draw)]
+        dest <- concerned_donors$ident[sample(1:nd, n_draw)]
 
+        res[[i]] <- data.table( orig = orig, dest = dest )
+
+        donors_geo <- donors_geo[ ! ident %in% c(dest,orig), ]
+        risks_geo <- risks_geo[ ! ident %in% c(dest,orig), ]
+      }
+    }
+
+    # print(res[[i]])
+    i <- i + 1
   }
 
-  return(list(drawn_donors = rbindlist(res), remain_donors = remaining_donors, remain_risks = remaining_risks))
+  return(list(match = rbindlist(res), risks_geo = risks_geo, donors_geo = donors_geo))
 
 }
 
 
 #' Title
 #'
-#' @param donors
-#' @param risks
+#' @param donors_geo data.table
+#' @param risks_geo data.table
 #' @param l_similar list of character vectors
-#' @param geo_level
+#' @param geo_level character vctor
+#' @param geo_level_sup character vector
 #'
-#' @return
+#' @return a data.table
 #' @export
 #'
 #' @examples
@@ -79,27 +97,31 @@ draw_donors <- function(donors, risks, stats_risks, similar, geo_level){
 #' n = 1e3
 #' donors <- create_data_example(n)
 #' risks <- donors[sample(1:n, ceiling(n*0.07)),]
-#' donors_drawn <- draw_donors_multi_sim(donors, risks, l_similar = list(c("edu", "sex", "age"), c("age", "sex"), c("sex")), geo_level = "geo")
-draw_donors_multi_sim <- function(donors, risks, l_similar, geo_level){
+#' donors_geo = data.table::copy(donors); risks_geo = data.table::copy(risks)
+#' donors_drawn <- draw_donors_one_geo_multi_sim(donors_geo, risks_geo, l_similar = list(c("edu", "sex", "age"), c("age", "sex"), c("sex")), geo_level = "geo")
+draw_donors_one_geo_multi_sim <- function(donors_geo, risks_geo, l_similar, geo_level, geo_level_sup = NULL){
 
-  remaining_donors <- data.table::copy(donors)
-  remaining_risks <- data.table::copy(risks)
-  s = 0
+  # remaining_donors <- data.table::copy(donors)
+  # remaining_risks <- data.table::copy(risks)
+  n_sim = length(l_similar)
+  s = 1
 
-  res <- as.list(rep(NA, length(l_similar)))
+  res <- list()
 
-  while(nrow(remaining_risks) > 0 & nrow(remaining_donors) > 0 & s < length(l_similar)){
+  while(nrow(risks_geo) > 0 & nrow(donors_geo) > 0 & s <= n_sim){
+
+    similar = l_similar[[s]]
+    cat("Search of donors similar on : ", similar, "\n")
+
+    stats_risks <- summary_risk(donors_geo, risks_geo, similar, geo_level)
+    matching <- draw_donors_one_geo_one_sim(donors_geo, risks_geo, stats_risks, similar, geo_level, geo_level_sup)
+
+    donors_geo <- data.table::copy(matching$donors_geo)
+    risks_geo <- data.table::copy(matching$risks_geo)
+
+    res[[s]] <- matching$match
+
     s = s+1
-    sim = l_similar[[s]]
-    cat("Search of donors similar on : ", sim, "\n")
-
-    stats_risks <- summary_risk(remaining_donors, remaining_risks, similar = sim, geo_level)
-    matching <- draw_donors(remaining_donors, remaining_risks, stats_risks, similar = sim, geo_level)
-
-    remaining_donors <- data.table::copy(matching$remain_donors)
-    remaining_risks <- data.table::copy(matching$remain_risks)
-
-    res[[s]] <- matching$drawn_donors
   }
 
   return(res)
