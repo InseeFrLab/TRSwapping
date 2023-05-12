@@ -33,8 +33,9 @@ Title
 library(data.table)
 set.seed(123)
 n = 1e3
-donors <- create_data_example(n)
-risks <- donors[sample(1:n, ceiling(n*0.07)),]
-donors_geo = data.table::copy(donors); risks_geo = data.table::copy(risks)
-donors_drawn <- draw_donors_one_geo_multi_sim(donors_geo, risks_geo, l_similar = list(c("edu", "sex", "age"), c("age", "sex"), c("sex")), geo_level = "geo")
+data <- create_data_example(n)
+data_prep <- prepare_data(data, "is_risky", "scope_risk", "ident", c("edu", "sex", "age"), "geo")
+risks <- data_prep$risks
+donors <- data_prep$donors
+donors_drawn <- draw_donors_one_geo_multi_sim(donors, risks, l_similar = list(c("edu", "sex", "age"), c("age", "sex"), c("sex")), geo_level = "geo")
 }

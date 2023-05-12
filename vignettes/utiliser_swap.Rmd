@@ -1,0 +1,68 @@
+---
+title: "Utiliser le package TRSwapping"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 3
+vignette: >
+  %\VignetteIndexEntry{TRSwapping}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Exemple simple
+
+```{r}
+library(tictoc)
+library(TRSwapping)
+```
+
+### data
+
+```{r}
+set.seed(123)
+n = 1e6
+data <- create_data_example(n)
+```
+
+```{r}
+str(data)
+```
+
+### swap
+
+```{r}
+tic()
+res_swap <- swap(
+  data,
+  "is_risky",
+  "scope_risk",
+  "ident",
+  l_similar = list(c("edu", "sex", "age"), c("age", "sex"), c("sex")),
+  geo_levels = "geo"
+)
+toc()
+```
+
+```{r}
+res_swap$check
+```
+
+```{r}
+tic()
+res_swap <- swap(
+  data,
+  "is_risky",
+  "scope_risk",
+  "ident",
+  l_similar = list(c("edu", "sex", "age"), c("age", "sex"), c("sex")),
+  geo_levels = "geo"
+)
+toc()
+```
+
+

@@ -14,16 +14,17 @@
 #' library(data.table)
 #' set.seed(123)
 #' n = 1e3
-#' donors <- create_data_example(n)
-#' risks <- donors[sample(1:n, ceiling(n*0.07)),]
+#' data <- create_data_example(n)
+#' data_prep <- prepare_data(data, "is_risky", "scope_risk", "ident", c("edu", "sex", "age"), "geo")
+#' risks <- data_prep$risks
+#' donors <- data_prep$donors
 #' stats_risks <- summary_risk(donors, risks, similar = c("edu", "sex"), geo_level = "geo")
-#' donors_geo = data.table::copy(donors); risks_geo = data.table::copy(risks)
 #' donors_drawn <- draw_donors_one_geo_one_sim(donors, risks, stats_risks, similar = c("edu", "sex"), geo_level = "geo")
 draw_donors_one_geo_one_sim <- function(donors_geo, risks_geo, stats_risks, similar, geo_level, geo_level_sup = NULL){
 
   ns <- nrow(stats_risks)
   cases <- 1:ns
-  res <- list() #as.list(rep(NULL, ns))
+  res <- replicate(ns, NULL, simplify = FALSE)
 
   # donors_geo <- data.table::copy(donors_geo)
   # remaining_risks <- data.table::copy(risks)
@@ -42,7 +43,6 @@ draw_donors_one_geo_one_sim <- function(donors_geo, risks_geo, stats_risks, simi
     g_sup <- if(is.null(geo_level_sup)) NULL else stats[[geo_level_sup]][1]
 
     concerned_risks <- risks_geo[stats][!is.na(ident),]
-    # merge(stats_risks[i,], risks_geo, by = c(similar, geo_level))
     nr <- nrow(concerned_risks)
 
     if(nr == 0){
@@ -100,21 +100,22 @@ draw_donors_one_geo_one_sim <- function(donors_geo, risks_geo, stats_risks, simi
 #' library(data.table)
 #' set.seed(123)
 #' n = 1e3
-#' donors <- create_data_example(n)
-#' risks <- donors[sample(1:n, ceiling(n*0.07)),]
-#' donors_geo = data.table::copy(donors); risks_geo = data.table::copy(risks)
-#' donors_drawn <- draw_donors_one_geo_multi_sim(donors_geo, risks_geo, l_similar = list(c("edu", "sex", "age"), c("age", "sex"), c("sex")), geo_level = "geo")
+#' data <- create_data_example(n)
+#' data_prep <- prepare_data(data, "is_risky", "scope_risk", "ident", c("edu", "sex", "age"), "geo")
+#' risks <- data_prep$risks
+#' donors <- data_prep$donors
+#' donors_drawn <- draw_donors_one_geo_multi_sim(donors, risks, l_similar = list(c("edu", "sex", "age"), c("age", "sex"), c("sex")), geo_level = "geo")
 draw_donors_one_geo_multi_sim <- function(donors_geo, risks_geo, l_similar, geo_level, geo_level_sup = NULL){
 
   n_sim = length(l_similar)
   s = 1
 
-  res <- list()
+  res <- replicate(n_sim, NULL, simplify = FALSE)
 
   while(nrow(risks_geo) > 0 & nrow(donors_geo) > 0 & s <= n_sim){
 
     similar = l_similar[[s]]
-    cat("Search of donors similar on : ", similar, "\n")
+    cat("------- Search of donors similar on : ", similar, "\n")
 
     stats_risks <- summary_risk(donors_geo, risks_geo, similar, geo_level)
     matching <- draw_donors_one_geo_one_sim(donors_geo, risks_geo, stats_risks, similar, geo_level, geo_level_sup)
@@ -146,8 +147,10 @@ draw_donors_one_geo_multi_sim <- function(donors_geo, risks_geo, l_similar, geo_
 #' library(data.table)
 #' set.seed(123)
 #' n = 1e3
-#' donors <- create_data_example(n)
-#' risks <- donors[sample(1:n, ceiling(n*0.07)),][, scope_risk := "geo"]
+#' data <- create_data_example(n)
+#' data_prep <- prepare_data(data, "is_risky", "scope_risk", "ident", c("edu", "sex", "age"), "geo")
+#' risks <- data_prep$risks
+#' donors <- data_prep$donors
 #' donors_drawn <- draw_donors_multi_geo_multi_sim(donors, risks, l_similar = list(c("edu", "sex", "age"), c("age", "sex"), c("sex")), geo_levels = "geo")
 #' check_res <- check_swap(risks, donors, donors_drawn)
 draw_donors_multi_geo_multi_sim <- function(donors, risks, l_similar, geo_levels){
@@ -160,11 +163,13 @@ draw_donors_multi_geo_multi_sim <- function(donors, risks, l_similar, geo_levels
   n_geo = length(geo_levels)
   j = 1
 
-  res <- list()
+  res <- replicate(n_geo, NULL, simplify = FALSE)
 
   while(nrow(remaining_donors) > 0 & nrow(remaining_risks) > 0 & j <= n_geo){
 
     geo <- geo_levels[j]
+    cat("---- Search of donors for geo_level : ", geo, "\n")
+
     geo_sup <- if(j == n_geo) NULL else geo_levels[j+1]
 
     scopes <- purrr::map_chr(1:j, \(i) geo_levels[i])

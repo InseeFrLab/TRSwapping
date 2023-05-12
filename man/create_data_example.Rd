@@ -10,7 +10,8 @@ create_data_example(n = 1e+05)
 \item{n}{number of individuals}
 }
 \value{
-data.table object of n rows and 5 variables
+data.table object of n rows and 7 variables
+(one ident, one geo var, three cat vars and two var for the risk)
 }
 \description{
 Create a dataset of fake individuals with some characteristics

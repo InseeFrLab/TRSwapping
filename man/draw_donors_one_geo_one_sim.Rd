@@ -36,9 +36,10 @@ Match similar risks-donors at one geographic level
 library(data.table)
 set.seed(123)
 n = 1e3
-donors <- create_data_example(n)
-risks <- donors[sample(1:n, ceiling(n*0.07)),]
+data <- create_data_example(n)
+data_prep <- prepare_data(data, "is_risky", "scope_risk", "ident", c("edu", "sex", "age"), "geo")
+risks <- data_prep$risks
+donors <- data_prep$donors
 stats_risks <- summary_risk(donors, risks, similar = c("edu", "sex"), geo_level = "geo")
-donors_geo = data.table::copy(donors); risks_geo = data.table::copy(risks)
 donors_drawn <- draw_donors_one_geo_one_sim(donors, risks, stats_risks, similar = c("edu", "sex"), geo_level = "geo")
 }
