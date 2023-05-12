@@ -64,18 +64,23 @@ draw_donors_one_geo_one_sim <- function(donors_geo, risks_geo, stats_risks, simi
         orig <- concerned_risks$ident[sample(1:nr, n_draw)]
         dest <- concerned_donors$ident[sample(1:nd, n_draw)]
 
-        res[[i]] <- data.table( orig = orig, dest = dest )
+        res[[i]] <- data.table(
+          orig = orig,
+          dest = dest,
+          geo_level = geo_level,
+          geo_level_sup = geo_level_sup,
+          similar = paste0(similar, collapse = ";")
+        )
 
         donors_geo <- donors_geo[ ! ident %in% c(dest,orig), ]
         risks_geo <- risks_geo[ ! ident %in% c(dest,orig), ]
       }
     }
 
-    # print(res[[i]])
     i <- i + 1
   }
 
-  return(list(match = rbindlist(res), risks_geo = risks_geo, donors_geo = donors_geo))
+  return(list(match = data.table::rbindlist(res), risks_geo = risks_geo, donors_geo = donors_geo))
 
 }
 
@@ -101,8 +106,6 @@ draw_donors_one_geo_one_sim <- function(donors_geo, risks_geo, stats_risks, simi
 #' donors_drawn <- draw_donors_one_geo_multi_sim(donors_geo, risks_geo, l_similar = list(c("edu", "sex", "age"), c("age", "sex"), c("sex")), geo_level = "geo")
 draw_donors_one_geo_multi_sim <- function(donors_geo, risks_geo, l_similar, geo_level, geo_level_sup = NULL){
 
-  # remaining_donors <- data.table::copy(donors)
-  # remaining_risks <- data.table::copy(risks)
   n_sim = length(l_similar)
   s = 1
 
@@ -124,8 +127,70 @@ draw_donors_one_geo_multi_sim <- function(donors_geo, risks_geo, l_similar, geo_
     s = s+1
   }
 
-  return(res)
+  return(data.table::rbindlist(res))
 
 }
+
+
+#' Title
+#'
+#' @param donors data.table
+#' @param risks data.table
+#' @param l_similar list of character vector
+#' @param geo_levels character vector
+#'
+#' @return a data.table
+#' @export
+#'
+#' @examples
+#' library(data.table)
+#' set.seed(123)
+#' n = 1e3
+#' donors <- create_data_example(n)
+#' risks <- donors[sample(1:n, ceiling(n*0.07)),][, scope_risk := "geo"]
+#' donors_drawn <- draw_donors_multi_geo_multi_sim(donors, risks, l_similar = list(c("edu", "sex", "age"), c("age", "sex"), c("sex")), geo_levels = "geo")
+#' check_res <- check_swap(risks, donors, donors_drawn)
+draw_donors_multi_geo_multi_sim <- function(donors, risks, l_similar, geo_levels){
+
+  remaining_donors <- data.table::copy(donors)
+  setkey(remaining_donors, ident)
+  remaining_risks <- data.table::copy(risks)
+  setkey(remaining_risks, ident)
+
+  n_geo = length(geo_levels)
+  j = 1
+
+  res <- list()
+
+  while(nrow(remaining_donors) > 0 & nrow(remaining_risks) > 0 & j <= n_geo){
+
+    geo <- geo_levels[j]
+    geo_sup <- if(j == n_geo) NULL else geo_levels[j+1]
+
+    scopes <- purrr::map_chr(1:j, \(i) geo_levels[i])
+    risks_geo <- remaining_risks[scope_risk %in% scopes,]
+
+    exclude_risks_as_donors <- remaining_risks[! scope_risk %in% scopes,]$ident
+    donors_geo <- remaining_donors[!J(exclude_risks_as_donors),]
+
+    res[[j]] <- draw_donors_one_geo_multi_sim(
+      donors_geo,
+      risks_geo,
+      l_similar,
+      geo_level = geo,
+      geo_level_sup = geo_sup
+    )
+
+    remaining_risks <- remaining_risks[!J(c(res[[j]]$orig, res[[j]]$dest)),]
+    remaining_donors <- remaining_donors[!J(c(res[[j]]$orig, res[[j]]$dest)),]
+    j = j + 1
+  }
+
+  return(data.table::rbindlist(res))
+
+}
+
+
+
 
 

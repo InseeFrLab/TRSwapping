@@ -15,7 +15,7 @@
 #' individuals[, .N, by = .(geo)]
 create_data_example <- function(n = 1e5){
 
-  require(data.table)
+  # require(data.table)
 
   individuals <- data.table(
     ident = 1:n,
