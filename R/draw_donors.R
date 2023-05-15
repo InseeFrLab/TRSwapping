@@ -84,6 +84,76 @@ draw_donors_one_geo_one_sim <- function(donors_geo, risks_geo, stats_risks, simi
 
 }
 
+#' Title
+#'
+#' @param donors_geo
+#' @param risks_geo
+#' @param stats_risks
+#' @param similar
+#' @param geo_level
+#' @param geo_level_sup
+#'
+#' @return data.table
+#' @export
+#'
+#' @examples
+#' library(data.table)
+#' set.seed(123)
+#' n = 1e3
+#' data <- create_data_example(n, add_geo = TRUE)
+#' data_prep <- prepare_data(data, "is_risky", "scope_risk", "ident", c("edu", "sex", "age"), c("geo","geo2"))
+#' risks <- data_prep$risks
+#' donors <- data_prep$donors
+#' stats_risks <- summary_risk(donors, risks, similar = c("edu", "sex"), geo_level = "geo", geo_level_sup = "geo2")
+#' donors_drawn <- draw_donors_one_geo_one_sim2(donors, risks, stats_risks, similar = c("edu", "sex"), geo_level = "geo", geo_level_sup = "geo2")
+draw_donors_one_geo_one_sim2 <- function(donors_geo, risks_geo, stats_risks, similar, geo_level, geo_level_sup = NULL){
+
+  risks_geo[, sim := as.integer(do.call(paste, c(.SD, sep=""))), .SDcols= c(similar)]
+  donors_geo[, sim := as.integer(do.call(paste, c(.SD, sep=""))), .SDcols= c(similar)]
+  stats_risks[, sim := as.integer(do.call(paste, c(.SD, sep=""))), .SDcols= c(similar)]
+
+  risks_geo_c <- risks_geo[, .SD, .SDcols = c("ident", "sim", geo_level, geo_level_sup, "scope_risk")]
+  setnames(risks_geo_c, c(geo_level, geo_level_sup), c("geo", "geo_sup"))
+
+  donors_geo_c <- donors_geo[, .SD, .SDcols = c("ident", "sim", geo_level, geo_level_sup)]
+  setnames(donors_geo_c, c(geo_level, geo_level_sup), c("geo", "geo_sup"))
+
+  stats_risks_c <- stats_risks[, .SD, .SDcols = c("sim", geo_level, geo_level_sup)]
+  setnames(stats_risks_c, c(geo_level, geo_level_sup), c("geo", "geo_sup"))
+
+  st_sim = stats_risks_c$sim
+  st_geo = stats_risks_c$geo
+  st_geo_sup = stats_risks_c$geo_sup
+
+  r_ident = risks_geo_c$ident
+  r_sim = risks_geo_c$sim
+  r_geo = risks_geo_c$geo
+  r_geo_sup = risks_geo_c$geo_sup
+
+  d_ident = donors_geo_c$ident
+  d_sim = donors_geo_c$sim
+  d_geo = donors_geo_c$geo
+  d_geo_sup = donors_geo_c$geo_sup
+
+  resC <- drawC(
+    st_sim,
+    st_geo,
+    st_geo_sup,
+
+    r_ident,
+    r_sim,
+    r_geo,
+    r_geo_sup,
+
+    d_ident,
+    d_sim,
+    d_geo,
+    d_geo_sup
+  )
+
+  return(rbindlist(resC))
+}
+
 
 #' Title
 #'
