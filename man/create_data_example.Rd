@@ -4,7 +4,7 @@
 \alias{create_data_example}
 \title{Create a dataset of fake individuals with some characteristics}
 \usage{
-create_data_example(n = 1e+05)
+create_data_example(n = 1e+05, add_geo = FALSE)
 }
 \arguments{
 \item{n}{number of individuals}
@@ -23,4 +23,7 @@ individuals <- create_data_example(n = 1e5)
 individuals[, .N, by = .(edu, sex)]
 individuals[, .N, by = .(sex, age)]
 individuals[, .N, by = .(geo)]
+individuals <- create_data_example(n = 1e5, add_geo = TRUE)
+individuals[, .N, by = .(geo2)]
+individuals[, .N, by = .(scope_risk)]
 }

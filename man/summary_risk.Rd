@@ -5,7 +5,7 @@
 \title{Compute the number of donors and the number of donors to draw
 for each crossing of geo and similarities}
 \usage{
-summary_risk(donors, risks, similar, geo_level)
+summary_risk(donors, risks, similar, geo_level, geo_level_sup = NULL)
 }
 \arguments{
 \item{donors}{data.table of individual donors}
@@ -15,6 +15,8 @@ summary_risk(donors, risks, similar, geo_level)
 \item{similar}{character vector of the variables of similarity}
 
 \item{geo_level}{character vector of the variable of the geographic level to consider}
+
+\item{geo_level_sup}{character vector}
 }
 \value{
 data.table crossing similarities and geo and with the following counts:
@@ -31,7 +33,17 @@ for each crossing of geo and similarities
 library(data.table)
 set.seed(123)
 n = 1e3
-donors <- create_data_example(n)
-risks <- donors[sample(1:n, ceiling(n*0.07)),]
+data <- create_data_example(n)
+data_prep <- prepare_data(data, "is_risky", "scope_risk", "ident", c("edu", "sex", "age"), "geo")
+risks <- data_prep$risks
+donors <- data_prep$donors
 stats_risks <- summary_risk(donors, risks, similar = c("edu", "sex"), geo_level = "geo")
+
+# with two geo levels
+n = 1e3
+data <- create_data_example(n, add_geo = TRUE)
+data_prep <- prepare_data(data, "is_risky", "scope_risk", "ident", c("edu", "sex", "age"), c("geo","geo2"))
+risks <- data_prep$risks
+donors <- data_prep$donors
+stats_risks <- summary_risk(donors, risks, similar = c("edu", "sex"), geo_level = "geo", geo_level_sup = "geo2")
 }

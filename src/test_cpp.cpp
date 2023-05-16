@@ -1,5 +1,4 @@
 #include <RcppArmadillo.h>
-
 // [[Rcpp::depends(RcppArmadillo)]]
 // [[Rcpp::plugins("cpp11")]]
 using namespace Rcpp;
@@ -17,26 +16,7 @@ arma::uvec remove_idx_in_place(
   return(idx);
 }
 
-
-// arma::uvec new_idx_drawn(
-//     const arma::mat& mat,
-//     arma::vec& new_ident_drawn
-// ){
-//
-//   arma::uvec idx(new_ident_drawn.n_elem);
-//   int j=0;
-//
-//   for(int i = 0; i < new_ident_drawn.n_elem; i++){
-//     arma::uvec adds = find(mat.col(3) == new_ident_drawn(i));
-//     if(adds.n_elem > 0){
-//       idx(j) = adds(0);
-//       j++;
-//     }
-//   }
-//   return(idx.rows(0,j-1));
-// }
-
-arma::uvec rbind_idx(
+arma::uvec rbind_idx_in_place(
     arma::uvec& idx,
     int n,
     arma::uvec& new_idx
@@ -58,19 +38,9 @@ arma::vec rbind_ident_in_place(
   return(ident);
 }
 
-// [[Rcpp::export]]
-int length_inter(
-    const arma::mat& mat,
-    const arma::uvec& col_idx,
-    const arma::vec& vec
-){
-  arma::vec col_mat = mat.cols(col_idx);
-  arma::vec inter = arma::intersect(col_mat, vec);
-  return( mat.n_rows - inter.n_elem );
-}
 
 // [[Rcpp::export]]
-List drawC(
+List test_drawC(
     const arma::mat& st_mat,
     const arma::mat& r_mat,
     const arma::mat& d_mat
@@ -144,24 +114,51 @@ List drawC(
           )
         );
 
-        //TODO: MAJ des index r_idx et d_idx
         // Maj de la liste des identifiants tirés rd_ident_drawn
         rbind_ident_in_place(rd_ident_drawn, rd_ident_n, orig);
         rd_ident_n = rd_ident_n + orig.n_elem;
         rbind_ident_in_place(rd_ident_drawn, rd_ident_n, dest);
         rd_ident_n = rd_ident_n + dest.n_elem;
 
+
       }
     }
 
-    // Maj des nbs de risques et donneurs restants
-    r_n = length_inter(r_mat, col_ident_idx, rd_ident_drawn);
-    d_n = length_inter(d_mat, col_ident_idx, rd_ident_drawn);
+
     i++;
   }
 
   return(res);
+
 }
 
+/*** R
+library(data.table)
+set.seed(123)
+n = 1e3
+data <- create_data_example(n, add_geo = TRUE)
+data_prep <- prepare_data(data, "is_risky", "scope_risk", "ident", c("edu", "sex", "age"), c("geo","geo2"))
+risks_geo <- data_prep$risks
+donors_geo <- data_prep$donors
+stats_risks <- summary_risk(donors_geo, risks_geo, similar = c("edu", "sex"), geo_level = "geo", geo_level_sup = "geo2")
+similar = c("edu", "sex"); geo_level = "geo"; geo_level_sup = "geo2"
+risks_geo[, sim := as.integer(do.call(paste, c(.SD, sep=""))), .SDcols= c(similar)]
+donors_geo[, sim := as.integer(do.call(paste, c(.SD, sep=""))), .SDcols= c(similar)]
+stats_risks[, sim := as.integer(do.call(paste, c(.SD, sep=""))), .SDcols= c(similar)]
+
+risks_geo_c <- risks_geo[, .SD, .SDcols = c("sim", geo_level, geo_level_sup, "ident")]
+setnames(risks_geo_c, c(geo_level, geo_level_sup), c("geo", "geo_sup"))
+
+donors_geo_c <- donors_geo[, .SD, .SDcols = c("sim", geo_level, geo_level_sup, "ident")]
+setnames(donors_geo_c, c(geo_level, geo_level_sup), c("geo", "geo_sup"))
+
+stats_risks_c <- stats_risks[, .SD, .SDcols = c("sim", geo_level, geo_level_sup)]
+setnames(stats_risks_c, c(geo_level, geo_level_sup), c("geo", "geo_sup"))
+
+m_stats <- as.matrix(stats_risks_c[, lapply(.SD, as.integer), .SDcols=c("sim", "geo", "geo_sup")])
+m_risks <- as.matrix(risks_geo_c[, lapply(.SD, as.integer), .SDcols=c("sim", "geo", "geo_sup","ident")])
+m_donors <- as.matrix(donors_geo_c[, lapply(.SD, as.integer), .SDcols=c("sim", "geo", "geo_sup","ident")])
 
 
+test_drawC(m_stats, m_risks, m_donors)
+*/

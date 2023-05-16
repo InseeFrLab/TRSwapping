@@ -112,7 +112,7 @@ draw_donors_one_geo_one_sim2 <- function(donors_geo, risks_geo, stats_risks, sim
   donors_geo[, sim := as.integer(do.call(paste, c(.SD, sep=""))), .SDcols= c(similar)]
   stats_risks[, sim := as.integer(do.call(paste, c(.SD, sep=""))), .SDcols= c(similar)]
 
-  risks_geo_c <- risks_geo[, .SD, .SDcols = c("ident", "sim", geo_level, geo_level_sup, "scope_risk")]
+  risks_geo_c <- risks_geo[, .SD, .SDcols = c("ident", "sim", geo_level, geo_level_sup)]
   setnames(risks_geo_c, c(geo_level, geo_level_sup), c("geo", "geo_sup"))
 
   donors_geo_c <- donors_geo[, .SD, .SDcols = c("ident", "sim", geo_level, geo_level_sup)]
