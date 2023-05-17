@@ -4,6 +4,7 @@
 // [[Rcpp::plugins("cpp11")]]
 using namespace Rcpp;
 
+// [[Rcpp::export]]
 arma::uvec remove_idx_in_place(
     arma::uvec& idx,
     const arma::uvec& idx_to_remove
@@ -16,6 +17,38 @@ arma::uvec remove_idx_in_place(
     idx.shed_rows( rems );
   }
   return(idx);
+}
+
+// [[Rcpp::export]]
+arma::vec concerned_select(
+    const arma::mat& mat,
+    const arma::uvec idx_drawn,
+    int idx_len,
+    int sim,
+    int g,
+    int g_sup,
+    bool is_risk = true
+){
+  arma::uvec col_ident_idx = { 3 };
+  arma::uvec select_idx;
+  if(is_risk){
+    select_idx = arma::find(
+      (mat.col(0) == sim) &&
+        (mat.col(1) == g)
+    );
+  }else{
+    select_idx = arma::find(
+      (mat.col(0) == sim) &&
+        (mat.col(1) != g) &&
+        (mat.col(2) == g_sup)
+    );
+  }
+  if(idx_len > 0){
+    remove_idx_in_place(select_idx, idx_drawn.rows(0, idx_len - 1));
+  }
+  arma::vec concerned = mat.submat(select_idx, col_ident_idx);
+
+  return(concerned);
 }
 
 // [[Rcpp::export]]
@@ -98,15 +131,16 @@ List drawC(
     int g = st_mat(i, 1);
     int g_sup = st_mat(i, 2);
 
-    arma::uvec select_risks = arma::find(
-      (r_mat.cols(col_sim_idx) == sim) &&
-        (r_mat.cols(col_geo_idx) == g)
-    );
-    if(r_idx_len > 0){
-      remove_idx_in_place(select_risks, r_idx_drawn.rows(0, r_idx_len - 1));
-    }
-
-    arma::vec concerned_risks = r_mat.submat(select_risks, col_ident_idx);
+    // arma::uvec select_risks = arma::find(
+    //   (r_mat.cols(col_sim_idx) == sim) &&
+    //     (r_mat.cols(col_geo_idx) == g)
+    // );
+    // if(r_idx_len > 0){
+    //   remove_idx_in_place(select_risks, r_idx_drawn.rows(0, r_idx_len - 1));
+    // }
+    //
+    // arma::vec concerned_risks = r_mat.submat(select_risks, col_ident_idx);
+    arma::vec concerned_risks = concerned_select(r_mat, r_idx_drawn, r_idx_len, sim, g, g_sup);
 
     int nr = concerned_risks.n_elem; //127ms
 
@@ -121,16 +155,18 @@ List drawC(
       //     l++;
       //   }
       // }
-    arma::uvec select_donors = arma::find(
-      (d_mat.cols(col_sim_idx) == sim) &&
-        (d_mat.cols(col_geo_idx) != g) &&
-        (d_mat.cols(col_geo_sup_idx) == g_sup)
-    ); //1.41s
-      if(d_idx_len > 0){
-        remove_idx_in_place(select_donors, d_idx_drawn.rows(0, d_idx_len - 1));
-      }
 
-      arma::vec concerned_donors = d_mat.submat(select_donors, col_ident_idx);
+      // arma::uvec select_donors = arma::find(
+      //   (d_mat.cols(col_sim_idx) == sim) &&
+      //     (d_mat.cols(col_geo_idx) != g) &&
+      //     (d_mat.cols(col_geo_sup_idx) == g_sup)
+      // ); //1.41s
+      //   if(d_idx_len > 0){
+      //     remove_idx_in_place(select_donors, d_idx_drawn.rows(0, d_idx_len - 1));
+      //   }
+      //
+      //   arma::vec concerned_donors = d_mat.submat(select_donors, col_ident_idx);
+      arma::vec concerned_donors = concerned_select(d_mat, d_idx_drawn, d_idx_len, sim, g, g_sup, false);
 
       int nd = concerned_donors.n_elem;//1.44s
 
@@ -184,7 +220,7 @@ List drawC(
 // /*** R
 // library(data.table)
 // set.seed(123)
-// n = 1e3
+// n = 1e5
 // data <- create_data_example(n, add_geo = TRUE)
 // data_prep <- prepare_data(data, "is_risky", "scope_risk", "ident", c("edu", "sex", "age"), c("geo","geo2"))
 // risks_geo <- data_prep$risks
@@ -208,8 +244,9 @@ List drawC(
 // m_risks <- as.matrix(risks_geo_c[, lapply(.SD, as.integer), .SDcols=c("sim", "geo", "geo_sup","ident")])
 // m_donors <- as.matrix(donors_geo_c[, lapply(.SD, as.integer), .SDcols=c("sim", "geo", "geo_sup","ident")])
 //
-//
-// res <- test_drawC(m_stats, m_risks, m_donors)
+// microbenchmark::microbenchmark(
+//   res <- drawC(m_stats, m_risks, m_donors), times = 1
+// )
 // resdt <- rbindlist(res)
 // length(unique(c(resdt$orig, resdt$dest))) == length(c(resdt$orig, resdt$dest))
 //

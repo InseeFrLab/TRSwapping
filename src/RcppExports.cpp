@@ -11,6 +11,35 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// remove_idx_in_place
+arma::uvec remove_idx_in_place(arma::uvec& idx, const arma::uvec& idx_to_remove);
+RcppExport SEXP _TRSwapping_remove_idx_in_place(SEXP idxSEXP, SEXP idx_to_removeSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::uvec& >::type idx(idxSEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type idx_to_remove(idx_to_removeSEXP);
+    rcpp_result_gen = Rcpp::wrap(remove_idx_in_place(idx, idx_to_remove));
+    return rcpp_result_gen;
+END_RCPP
+}
+// concerned_select
+arma::vec concerned_select(const arma::mat& mat, const arma::uvec idx_drawn, int idx_len, int sim, int g, int g_sup, bool is_risk);
+RcppExport SEXP _TRSwapping_concerned_select(SEXP matSEXP, SEXP idx_drawnSEXP, SEXP idx_lenSEXP, SEXP simSEXP, SEXP gSEXP, SEXP g_supSEXP, SEXP is_riskSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type mat(matSEXP);
+    Rcpp::traits::input_parameter< const arma::uvec >::type idx_drawn(idx_drawnSEXP);
+    Rcpp::traits::input_parameter< int >::type idx_len(idx_lenSEXP);
+    Rcpp::traits::input_parameter< int >::type sim(simSEXP);
+    Rcpp::traits::input_parameter< int >::type g(gSEXP);
+    Rcpp::traits::input_parameter< int >::type g_sup(g_supSEXP);
+    Rcpp::traits::input_parameter< bool >::type is_risk(is_riskSEXP);
+    rcpp_result_gen = Rcpp::wrap(concerned_select(mat, idx_drawn, idx_len, sim, g, g_sup, is_risk));
+    return rcpp_result_gen;
+END_RCPP
+}
 // rbind_idx_in_place
 arma::uvec rbind_idx_in_place(arma::uvec& idx, int n, const arma::uvec& new_idx);
 RcppExport SEXP _TRSwapping_rbind_idx_in_place(SEXP idxSEXP, SEXP nSEXP, SEXP new_idxSEXP) {
@@ -64,6 +93,8 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_TRSwapping_remove_idx_in_place", (DL_FUNC) &_TRSwapping_remove_idx_in_place, 2},
+    {"_TRSwapping_concerned_select", (DL_FUNC) &_TRSwapping_concerned_select, 7},
     {"_TRSwapping_rbind_idx_in_place", (DL_FUNC) &_TRSwapping_rbind_idx_in_place, 3},
     {"_TRSwapping_rbind_ident_in_place", (DL_FUNC) &_TRSwapping_rbind_ident_in_place, 3},
     {"_TRSwapping_find_idx", (DL_FUNC) &_TRSwapping_find_idx, 2},
