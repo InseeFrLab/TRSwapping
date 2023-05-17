@@ -25,6 +25,7 @@ draw_donors_one_geo_one_sim <- function(donors_geo, risks_geo, stats_risks, simi
   ns <- nrow(stats_risks)
   cases <- 1:ns
   res <- replicate(ns, NULL, simplify = FALSE)
+  all_drawn = c()
 
   # samp_donors <- donors_geo[, .SD[sample(.N, ceiling(.N*0.1))], by = c(similar, geo_level_sup)]
   # samp_donors <- unique(rbindlist(list(samp_donors, risks_geo[,.SD, .SDcols = names(samp_donors)]), use.names = TRUE))
@@ -32,8 +33,8 @@ draw_donors_one_geo_one_sim <- function(donors_geo, risks_geo, stats_risks, simi
   # donors_geo <- data.table::copy(donors_geo)
   # remaining_risks <- data.table::copy(risks)
 
-  setkeyv(risks_geo, c(similar, geo_level, geo_level_sup))
-  setkeyv(donors_geo, c(similar, geo_level_sup))
+  # setkeyv(risks_geo, c(similar, geo_level, geo_level_sup))
+  # setkeyv(donors_geo, c(similar, geo_level_sup))
 
   i = 1
 
@@ -45,7 +46,14 @@ draw_donors_one_geo_one_sim <- function(donors_geo, risks_geo, stats_risks, simi
     g <- stats[[geo_level]][1]
     g_sup <- if(is.null(geo_level_sup)) NULL else stats[[geo_level_sup]][1]
 
-    concerned_risks <- risks_geo[stats][!is.na(ident),]
+    # concerned_risks <- risks_geo[stats][!is.na(ident),]
+    concerned_risks <- merge(
+      stats,
+      risks_geo[!J(all_drawn),],
+      by = c(similar, geo_level, geo_level_sup),
+      all.x = TRUE,
+      all.y = FALSE
+    )
     nr <- nrow(concerned_risks)
 
     if(nr == 0){
@@ -53,11 +61,22 @@ draw_donors_one_geo_one_sim <- function(donors_geo, risks_geo, stats_risks, simi
     }else{
 
       stats[,c(geo_level):=NULL]
-      concerned_donors <- donors_geo[stats][!is.na(ident),]
+      # concerned_donors <- donors_geo[stats][!is.na(ident),]
+      concerned_donors <- merge(
+        stats,
+        donors_geo[],
+        by = c(similar, geo_level_sup),
+        all.x = TRUE,
+        all.y = FALSE
+      )
       setkeyv(concerned_donors, geo_level)
       concerned_donors <- concerned_donors[!J(g),]
-      nd <- nrow(concerned_donors)
       setkey(concerned_donors, NULL)
+      setkeyv(concerned_donors, c("ident"))
+      concerned_donors <- concerned_donors[!J(all_drawn),]
+      setkey(concerned_donors, NULL)
+      nd <- nrow(concerned_donors)
+
 
       if(nd == 0){
         res[[i]] <- data.table( orig = NULL, dest = NULL )
@@ -71,19 +90,28 @@ draw_donors_one_geo_one_sim <- function(donors_geo, risks_geo, stats_risks, simi
           orig = orig,
           dest = dest,
           geo_level = geo_level,
-          geo_level_sup = geo_level_sup,
+          geo_level_sup = ifelse(is.null(geo_level_sup), NA, geo_level_sup),
           similar = paste0(similar, collapse = ";")
         )
 
-        donors_geo <- donors_geo[ ! ident %in% c(dest,orig), ]
-        risks_geo <- risks_geo[ ! ident %in% c(dest,orig), ]
+        all_drawn <- sort(unique(c(all_drawn, dest, orig)))
+        # setkey(donors_geo, NULL)
+        # setkeyv(donors_geo, c("ident"))
+        # donors_geo <- donors_geo[ !J(all_drawn), ]
+        # setkey(risks_geo, NULL)
+        # setkeyv(risks_geo, c("ident"))
+        # risks_geo <- risks_geo[ !J(all_drawn), ]
+        # donors_geo <- donors_geo[ ! ident %in% all_drawn, ]
+        # risks_geo <- risks_geo[ ! ident %in% all_drawn, ]
       }
     }
 
     i <- i + 1
   }
+  gc()
 
-  return(list(match = data.table::rbindlist(res), risks_geo = risks_geo, donors_geo = donors_geo))
+  # return(list(match = data.table::rbindlist(res), risks_geo = risks_geo, donors_geo = donors_geo))
+  return(data.table::rbindlist(res))
 
 }
 
@@ -174,16 +202,22 @@ draw_donors_one_geo_multi_sim <- function(donors_geo, risks_geo, l_similar, geo_
     similar = l_similar[[s]]
     cat("------- Search of donors similar on : ", similar, "\n")
 
-    stats_risks <- summary_risk(donors_geo, risks_geo, similar, geo_level)
-    matching <- draw_donors_one_geo_one_sim(donors_geo, risks_geo, stats_risks, similar, geo_level, geo_level_sup)
+    stats_risks <- summary_risk(donors_geo, risks_geo, similar, geo_level, geo_level_sup)
+    res[[s]] <- draw_donors_one_geo_one_sim(donors_geo, risks_geo, stats_risks, similar, geo_level, geo_level_sup)
 
-    donors_geo <- data.table::copy(matching$donors_geo)
-    risks_geo <- data.table::copy(matching$risks_geo)
+    donors_geo <- donors_geo[!J(c(res[[s]]$orig, res[[s]]$dest)),]
+    risks_geo <- risks_geo[!J(c(res[[s]]$orig, res[[s]]$dest)),]
 
-    res[[s]] <- matching$match
+    # matching <- draw_donors_one_geo_one_sim(donors_geo, risks_geo, stats_risks, similar, geo_level, geo_level_sup)
+    #
+    # donors_geo <- data.table::copy(matching$donors_geo)
+    # risks_geo <- data.table::copy(matching$risks_geo)
+
+    # res[[s]] <- matching$match
 
     s = s+1
   }
+  gc()
 
   return(data.table::rbindlist(res))
 
@@ -246,6 +280,8 @@ draw_donors_multi_geo_multi_sim <- function(donors, risks, l_similar, geo_levels
     remaining_risks <- remaining_risks[!J(c(res[[j]]$orig, res[[j]]$dest)),]
     remaining_donors <- remaining_donors[!J(c(res[[j]]$orig, res[[j]]$dest)),]
     j = j + 1
+
+    gc()
   }
 
   return(data.table::rbindlist(res))
