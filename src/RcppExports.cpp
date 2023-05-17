@@ -11,6 +11,19 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// rbind_idx_in_place
+arma::uvec rbind_idx_in_place(arma::uvec& idx, int n, const arma::uvec& new_idx);
+RcppExport SEXP _TRSwapping_rbind_idx_in_place(SEXP idxSEXP, SEXP nSEXP, SEXP new_idxSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::uvec& >::type idx(idxSEXP);
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type new_idx(new_idxSEXP);
+    rcpp_result_gen = Rcpp::wrap(rbind_idx_in_place(idx, n, new_idx));
+    return rcpp_result_gen;
+END_RCPP
+}
 // rbind_ident_in_place
 arma::vec rbind_ident_in_place(arma::vec& ident, int n, const arma::vec& new_ident);
 RcppExport SEXP _TRSwapping_rbind_ident_in_place(SEXP identSEXP, SEXP nSEXP, SEXP new_identSEXP) {
@@ -24,16 +37,15 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// length_inter
-int length_inter(const arma::mat& mat, const arma::uvec& col_idx, const arma::vec& vec);
-RcppExport SEXP _TRSwapping_length_inter(SEXP matSEXP, SEXP col_idxSEXP, SEXP vecSEXP) {
+// find_idx
+arma::uvec find_idx(const arma::vec& ident, const arma::vec& ident_drawn);
+RcppExport SEXP _TRSwapping_find_idx(SEXP identSEXP, SEXP ident_drawnSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::mat& >::type mat(matSEXP);
-    Rcpp::traits::input_parameter< const arma::uvec& >::type col_idx(col_idxSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type vec(vecSEXP);
-    rcpp_result_gen = Rcpp::wrap(length_inter(mat, col_idx, vec));
+    Rcpp::traits::input_parameter< const arma::vec& >::type ident(identSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type ident_drawn(ident_drawnSEXP);
+    rcpp_result_gen = Rcpp::wrap(find_idx(ident, ident_drawn));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -52,8 +64,9 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_TRSwapping_rbind_idx_in_place", (DL_FUNC) &_TRSwapping_rbind_idx_in_place, 3},
     {"_TRSwapping_rbind_ident_in_place", (DL_FUNC) &_TRSwapping_rbind_ident_in_place, 3},
-    {"_TRSwapping_length_inter", (DL_FUNC) &_TRSwapping_length_inter, 3},
+    {"_TRSwapping_find_idx", (DL_FUNC) &_TRSwapping_find_idx, 2},
     {"_TRSwapping_drawC", (DL_FUNC) &_TRSwapping_drawC, 3},
     {NULL, NULL, 0}
 };

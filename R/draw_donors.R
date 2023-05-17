@@ -26,15 +26,18 @@ draw_donors_one_geo_one_sim <- function(donors_geo, risks_geo, stats_risks, simi
   cases <- 1:ns
   res <- replicate(ns, NULL, simplify = FALSE)
 
+  samp_donors <- donors_geo[, .SD[sample(.N, ceiling(.N*0.1))], by = c(similar, geo_level_sup)]
+  samp_donors <- unique(rbindlist(list(samp_donors, risks_geo[,.SD, .SDcols = names(samp_donors)]), use.names = TRUE))
+
   # donors_geo <- data.table::copy(donors_geo)
   # remaining_risks <- data.table::copy(risks)
 
   setkeyv(risks_geo, c(similar, geo_level, geo_level_sup))
-  setkeyv(donors_geo, c(similar, geo_level_sup))
+  setkeyv(samp_donors, c(similar, geo_level_sup))
 
   i = 1
 
-  while(nrow(risks_geo) > 0 & nrow(donors_geo) > 0 & i <= ns){
+  while(nrow(risks_geo) > 0 & nrow(samp_donors) > 0 & i <= ns){
 
     stats <- copy(stats_risks[i,])
     setkeyv(stats, c(similar, geo_level, geo_level_sup))
@@ -50,7 +53,7 @@ draw_donors_one_geo_one_sim <- function(donors_geo, risks_geo, stats_risks, simi
     }else{
 
       stats[,c(geo_level):=NULL]
-      concerned_donors <- donors_geo[stats][!is.na(ident),]
+      concerned_donors <- samp_donors[stats][!is.na(ident),]
       setkeyv(concerned_donors, geo_level)
       concerned_donors <- concerned_donors[!J(g),]
       nd <- nrow(concerned_donors)
@@ -72,7 +75,7 @@ draw_donors_one_geo_one_sim <- function(donors_geo, risks_geo, stats_risks, simi
           similar = paste0(similar, collapse = ";")
         )
 
-        donors_geo <- donors_geo[ ! ident %in% c(dest,orig), ]
+        samp_donors <- samp_donors[ ! ident %in% c(dest,orig), ]
         risks_geo <- risks_geo[ ! ident %in% c(dest,orig), ]
       }
     }
@@ -121,35 +124,19 @@ draw_donors_one_geo_one_sim2 <- function(donors_geo, risks_geo, stats_risks, sim
   stats_risks_c <- stats_risks[, .SD, .SDcols = c("sim", geo_level, geo_level_sup)]
   setnames(stats_risks_c, c(geo_level, geo_level_sup), c("geo", "geo_sup"))
 
-  st_sim = stats_risks_c$sim
-  st_geo = stats_risks_c$geo
-  st_geo_sup = stats_risks_c$geo_sup
+  m_stats <- as.matrix(stats_risks_c[, lapply(.SD, as.integer), .SDcols=c("sim", "geo", "geo_sup")])
+  s_risks <- risks_geo_c[, lapply(.SD, as.integer), .SDcols=c("sim", "geo", "geo_sup","ident")]
+  s_donors <- donors_geo_c[, lapply(.SD, as.integer), .SDcols=c("sim", "geo", "geo_sup","ident")]
 
-  r_ident = risks_geo_c$ident
-  r_sim = risks_geo_c$sim
-  r_geo = risks_geo_c$geo
-  r_geo_sup = risks_geo_c$geo_sup
+  samp_donors <- s_donors[, .SD[sample(.N, ceiling(.N*0.1))], by = c("sim", "geo_sup")][,.SD,.SDcols = c("sim", "geo", "geo_sup","ident")]
+  samp_donors <- unique(rbindlist(list(samp_donors, s_risks)))
 
-  d_ident = donors_geo_c$ident
-  d_sim = donors_geo_c$sim
-  d_geo = donors_geo_c$geo
-  d_geo_sup = donors_geo_c$geo_sup
+  m_risks <- as.matrix(s_risks)
+  m_donors <- as.matrix(samp_donors)
 
-  resC <- drawC(
-    st_sim,
-    st_geo,
-    st_geo_sup,
-
-    r_ident,
-    r_sim,
-    r_geo,
-    r_geo_sup,
-
-    d_ident,
-    d_sim,
-    d_geo,
-    d_geo_sup
-  )
+  # Tirer un premier echantillon de donneurs pour accélérer les calculs
+  # Tirage à 10% (par exemple) par geo_sup*sim
+  resC <- drawC(m_stats, m_risks, m_donors)
 
   return(rbindlist(resC))
 }
