@@ -4,7 +4,16 @@
 \alias{swap}
 \title{Title}
 \usage{
-swap(data, var_risk, var_scope_risk, var_ident, l_similar, geo_levels)
+swap(
+  data,
+  var_risk,
+  var_scope_risk,
+  var_ident,
+  l_similar,
+  geo_levels,
+  parallel = FALSE,
+  n_cores = 2
+)
 }
 \arguments{
 \item{data}{data.table}
@@ -18,6 +27,10 @@ swap(data, var_risk, var_scope_risk, var_ident, l_similar, geo_levels)
 \item{l_similar}{list of character vector}
 
 \item{geo_levels}{character vector}
+
+\item{parallel}{logical}
+
+\item{n_cores}{integer}
 }
 \value{
 list with two objects: swap = data.table, check = list
@@ -36,5 +49,16 @@ res_swap <- swap(
   "ident",
   l_similar = list(c("edu", "sex", "age"), c("age", "sex"), c("sex")),
   geo_levels = "geo"
+)
+# Exemple 2
+n = 1e5
+data <- create_data_example(n, add_geo = TRUE)
+res_swap <- swap(
+  data,
+  var_risk = "is_risky",
+  var_scope_risk = "scope_risk",
+  var_ident = "ident",
+  l_similar = list(c("edu", "sex", "age"), c("age", "sex"), c("sex")),
+  geo_levels = c("geo", "geo2")
 )
 }

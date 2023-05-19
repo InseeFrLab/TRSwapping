@@ -4,18 +4,24 @@
 // using namespace Rcpp;
 //
 // // [[Rcpp::export]]
-// void remove_idx_in_place(
-//     arma::uvec& idx,
+// arma::uvec remove_idx_in_place(
+//     arma::uvec& id,
 //     const arma::uvec& idx_to_remove
 // ){
 //
 //   int n = idx_to_remove.n_elem;
 //   arma::uvec rems;
 //   for(int i = 0; i < n; i++ ){
-//     rems = arma::find( idx == idx_to_remove( i ) );
-//     idx.shed_rows( rems );
+//     rems = arma::find( id == idx_to_remove( i ) );
+//     id.shed_rows( rems );
 //   }
+//   return(id);
 // }
+//
+// /*** R
+// remove_idx_in_place(1:10, 2:3)
+// */
+
 //
 //
 // // [[Rcpp::export]]

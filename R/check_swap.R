@@ -8,7 +8,7 @@
 #' @export
 #'
 #' @examples
-#' #' library(data.table)
+#' library(data.table)
 #' set.seed(123)
 #' n = 1e3
 #' donors <- create_data_example(n)

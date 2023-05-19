@@ -14,7 +14,17 @@ draw_donors_one_geo_one_sim2(
 )
 }
 \arguments{
-\item{geo_level_sup}{}
+\item{donors_geo}{data.table}
+
+\item{risks_geo}{data.table}
+
+\item{stats_risks}{data.table}
+
+\item{similar}{character vector}
+
+\item{geo_level}{character vector}
+
+\item{geo_level_sup}{character vector}
 }
 \value{
 data.table

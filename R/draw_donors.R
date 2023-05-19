@@ -46,14 +46,14 @@ draw_donors_one_geo_one_sim <- function(donors_geo, risks_geo, stats_risks, simi
     g <- stats[[geo_level]][1]
     g_sup <- if(is.null(geo_level_sup)) NULL else stats[[geo_level_sup]][1]
 
-    # concerned_risks <- risks_geo[stats][!is.na(ident),]
-    concerned_risks <- merge(
-      stats,
-      risks_geo[!J(all_drawn),],
-      by = c(similar, geo_level, geo_level_sup),
-      all.x = TRUE,
-      all.y = FALSE
-    )
+    concerned_risks <- risks_geo[!J(all_drawn),][stats, on = c(similar, geo_level, geo_level_sup), nomatch=NULL]
+    # concerned_risks <- merge(
+    #   stats,
+    #   risks_geo[!J(all_drawn),],
+    #   by = c(similar, geo_level, geo_level_sup),
+    #   all.x = TRUE,
+    #   all.y = FALSE
+    # )
     nr <- nrow(concerned_risks)
 
     if(nr == 0){
@@ -61,20 +61,24 @@ draw_donors_one_geo_one_sim <- function(donors_geo, risks_geo, stats_risks, simi
     }else{
 
       stats[,c(geo_level):=NULL]
-      # concerned_donors <- donors_geo[stats][!is.na(ident),]
-      concerned_donors <- merge(
-        stats,
-        donors_geo[],
-        by = c(similar, geo_level_sup),
-        all.x = TRUE,
-        all.y = FALSE
-      )
+      concerned_donors <- donors_geo[
+        !J(all_drawn),
+      ][
+        stats, on = c(similar, geo_level_sup), nomatch=NULL
+      ]
+      # concerned_donors <- merge(
+      #   stats,
+      #   donors_geo[],
+      #   by = c(similar, geo_level_sup),
+      #   all.x = TRUE,
+      #   all.y = FALSE
+      # )
       setkeyv(concerned_donors, geo_level)
       concerned_donors <- concerned_donors[!J(g),]
-      setkey(concerned_donors, NULL)
-      setkeyv(concerned_donors, c("ident"))
-      concerned_donors <- concerned_donors[!J(all_drawn),]
-      setkey(concerned_donors, NULL)
+      # # setkey(concerned_donors, NULL)
+      # # setkeyv(concerned_donors, c("ident"))
+      # concerned_donors <- concerned_donors[!(all_drawn), on = "ident"]
+      # setkey(concerned_donors, NULL)
       nd <- nrow(concerned_donors)
 
 
@@ -117,12 +121,12 @@ draw_donors_one_geo_one_sim <- function(donors_geo, risks_geo, stats_risks, simi
 
 #' Title
 #'
-#' @param donors_geo
-#' @param risks_geo
-#' @param stats_risks
-#' @param similar
-#' @param geo_level
-#' @param geo_level_sup
+#' @param donors_geo data.table
+#' @param risks_geo data.table
+#' @param stats_risks data.table
+#' @param similar character vector
+#' @param geo_level character vector
+#' @param geo_level_sup character vector
 #'
 #' @return data.table
 #' @export
@@ -192,6 +196,9 @@ draw_donors_one_geo_one_sim2 <- function(donors_geo, risks_geo, stats_risks, sim
 #' donors_drawn <- draw_donors_one_geo_multi_sim(donors, risks, l_similar = list(c("edu", "sex", "age"), c("age", "sex"), c("sex")), geo_level = "geo")
 draw_donors_one_geo_multi_sim <- function(donors_geo, risks_geo, l_similar, geo_level, geo_level_sup = NULL){
 
+  setkey(donors_geo, ident)
+  setkey(risks_geo, ident)
+
   n_sim = length(l_similar)
   s = 1
 
@@ -244,7 +251,7 @@ draw_donors_one_geo_multi_sim <- function(donors_geo, risks_geo, l_similar, geo_
 #' donors <- data_prep$donors
 #' donors_drawn <- draw_donors_multi_geo_multi_sim(donors, risks, l_similar = list(c("edu", "sex", "age"), c("age", "sex"), c("sex")), geo_levels = "geo")
 #' check_res <- check_swap(risks, donors, donors_drawn)
-draw_donors_multi_geo_multi_sim <- function(donors, risks, l_similar, geo_levels){
+draw_donors_multi_geo_multi_sim <- function(donors, risks, l_similar, geo_levels, parallel = FALSE, n_cores = 2){
 
   remaining_donors <- data.table::copy(donors)
   setkey(remaining_donors, ident)
@@ -269,13 +276,48 @@ draw_donors_multi_geo_multi_sim <- function(donors, risks, l_similar, geo_levels
     exclude_risks_as_donors <- remaining_risks[! scope_risk %in% scopes,]$ident
     donors_geo <- remaining_donors[!J(exclude_risks_as_donors),]
 
-    res[[j]] <- draw_donors_one_geo_multi_sim(
-      donors_geo,
-      risks_geo,
-      l_similar,
-      geo_level = geo,
-      geo_level_sup = geo_sup
-    )
+    if ( is.null(geo_sup) | isFALSE(parallel) ) {
+      res[[j]] <- draw_donors_one_geo_multi_sim(
+        donors_geo,
+        risks_geo,
+        l_similar,
+        geo_level = geo,
+        geo_level_sup = geo_sup
+      )
+    } else {
+      setorderv(donors_geo, c(geo_sup))
+      setorderv(risks_geo, c(geo_sup))
+
+      l_donors <- split(donors_geo, by = geo_sup)
+      l_risks <- split(risks_geo, by = geo_sup)
+      no_risks <- setdiff(names(l_donors), names(l_risks))
+      if (length(no_risks) > 0) l_donors <- l_donors[-which(names(l_donors) %in% no_risks)]
+
+      l_donors <- lapply(l_donors, setkeyv, "ident")
+      l_risks <- lapply(l_risks, setkeyv, "ident")
+
+      oplan <- future::plan(future::multisession, workers = n_cores)
+      on.exit(future::plan(oplan))
+
+      opts <- furrr::furrr_options(
+        globals = TRUE,
+        packages = "TRSwapping",
+        seed = TRUE
+      )
+      res[[j]] <- furrr::future_map2_dfr(
+        l_donors,
+        l_risks,
+        draw_donors_one_geo_multi_sim,
+        l_similar = l_similar,
+        geo_level = geo,
+        geo_level_sup = geo_sup,
+        .options = opts
+      )
+
+      future::plan(future::sequential)
+
+    }
+
 
     remaining_risks <- remaining_risks[!J(c(res[[j]]$orig, res[[j]]$dest)),]
     remaining_donors <- remaining_donors[!J(c(res[[j]]$orig, res[[j]]$dest)),]

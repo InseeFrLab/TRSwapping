@@ -6,6 +6,8 @@
 #' @param var_ident name of a char or num var
 #' @param l_similar list of character vector
 #' @param geo_levels character vector
+#' @param parallel logical
+#' @param n_cores integer
 #'
 #' @return list with two objects: swap = data.table, check = list
 #' @export
@@ -22,13 +24,37 @@
 #'   l_similar = list(c("edu", "sex", "age"), c("age", "sex"), c("sex")),
 #'   geo_levels = "geo"
 #' )
+#' # Exemple 2
+#' n = 1e3
+#' data <- create_data_example(n, add_geo = TRUE)
+#' res_swap <- swap(
+#'   data,
+#'   var_risk = "is_risky",
+#'   var_scope_risk = "scope_risk",
+#'   var_ident = "ident",
+#'   l_similar = list(c("edu", "sex", "age"), c("age", "sex"), c("sex")),
+#'   geo_levels = c("geo", "geo2")
+#' )
+#'
+#' res_swap_par <- swap(
+#'   data,
+#'   var_risk = "is_risky",
+#'   var_scope_risk = "scope_risk",
+#'   var_ident = "ident",
+#'   l_similar = list(c("edu", "sex", "age"), c("age", "sex"), c("sex")),
+#'   geo_levels = c("geo", "geo2"),
+#'   parallel = TRUE,
+#'   n_cores = 2
+#' )
 swap <- function(
     data,
     var_risk,
     var_scope_risk,
     var_ident,
     l_similar,
-    geo_levels
+    geo_levels,
+    parallel = FALSE,
+    n_cores = 2
 ){
 
   vars_similar <- unique(unlist(l_similar))
@@ -50,7 +76,9 @@ swap <- function(
     donors,
     risks,
     l_similar,
-    geo_levels
+    geo_levels,
+    parallel,
+    n_cores
   )
   check_res <- check_swap(risks, donors, donors_drawn)
 

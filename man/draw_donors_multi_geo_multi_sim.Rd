@@ -4,7 +4,14 @@
 \alias{draw_donors_multi_geo_multi_sim}
 \title{Title}
 \usage{
-draw_donors_multi_geo_multi_sim(donors, risks, l_similar, geo_levels)
+draw_donors_multi_geo_multi_sim(
+  donors,
+  risks,
+  l_similar,
+  geo_levels,
+  parallel = FALSE,
+  n_cores = 2
+)
 }
 \arguments{
 \item{donors}{data.table}

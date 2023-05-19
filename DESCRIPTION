@@ -9,6 +9,8 @@ Description: More about what it does (maybe more than one line) Use four
 License: What license is it under?
 Imports: 
     data.table,
+    future,
+    furrr,
     Rcpp
 LinkingTo: 
     Rcpp,
